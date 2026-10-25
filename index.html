@@ -333,6 +333,11 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .pledge input { flex: 0 0 auto; width: 26px; height: 26px; margin: 2px 0 0; accent-color: var(--chalk-yellow); cursor: pointer; }
 .pledge:has(input:checked) { border-style: solid; border-color: var(--chalk-yellow); background: rgba(242,212,107,.1); }
 .pledge input:focus-visible { outline: 3px solid var(--chalk-yellow); outline-offset: 3px; }
+
+/* Auto-advance progress (7s per page) */
+.auto-bar { height: 6px; border-radius: 3px; background: rgba(243,239,227,.15); overflow: hidden; margin-bottom: 24px; }
+.auto-bar i { display: block; height: 100%; background: var(--chalk-yellow); transform-origin: right center; animation: autofill 7s linear forwards; }
+@keyframes autofill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 </style>
 
 </head>
@@ -486,10 +491,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
       <p class="math" id="math"></p>
       <p class="signoff">كل عام وأنتِ بخير بمناسبة يوم المعلم!</p>
       <div class="spacer"></div>
-      <div class="tray">
-        <button class="btn ghost" id="again" type="button">ابدأ من جديد</button>
-        <button class="btn" id="toCert" type="button">عرض الشهادة</button>
-      </div>
+      <div class="auto-bar" aria-hidden="true"><i></i></div>
     </section>
 
     <!-- Page 4 -->
@@ -514,10 +516,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
         </div>
       </article>
       <div class="spacer"></div>
-      <div class="tray">
-        <button class="btn ghost" id="backToResults" type="button">رجوع</button>
-        <button class="btn" id="toGift" type="button">افتحي هديتك 🎁</button>
-      </div>
+      <div class="auto-bar" aria-hidden="true"><i></i></div>
     </section>
 
     <!-- Page: gift card -->
@@ -530,7 +529,6 @@ form { display: flex; flex-direction: column; gap: 18px; }
       </figure>
       <div class="spacer"></div>
       <div class="tray">
-        <button class="btn ghost" id="giftBack" type="button">رجوع</button>
         <button class="btn" id="again2" type="button">ابدأ من جديد</button>
       </div>
     </section>
@@ -869,6 +867,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
     show(3);
     countUp(document.getElementById("outYears"), years);
     countUp(document.getElementById("outStudents"), students);
+    startAuto();
     countUp(document.getElementById("outPeriods"), totalPeriods);
     document.getElementById("certPeriods").textContent = fmt.format(totalPeriods);
     document.getElementById("certYears").textContent = fmt.format(years);
@@ -879,6 +878,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
 
   }
   function restart() {
+    clearAuto();
     document.getElementById("quiz").reset();
     document.getElementById("teacherName").value = DEFAULT_NAME;
     setCertName(DEFAULT_NAME);
@@ -929,17 +929,29 @@ form { display: flex; flex-direction: column; gap: 18px; }
   });
   document.getElementById("submit").addEventListener("click", nextQ);
   document.getElementById("quiz").addEventListener("submit", function (e) { e.preventDefault(); nextQ(); });
-  document.getElementById("toCert").addEventListener("click", function () { show(4); playApplause(5); });
-  document.getElementById("backToResults").addEventListener("click", function () { show(3); });
-  document.getElementById("again").addEventListener("click", restart);
   document.getElementById("again2").addEventListener("click", restart);
-  document.getElementById("toGift").addEventListener("click", function () {
+
+  /* After the quiz, results → certificate → gift play on their own, 7 seconds each */
+  var AUTO_MS = 7000, autoTimers = [];
+  function clearAuto() { autoTimers.forEach(clearTimeout); autoTimers = []; }
+  function runBar(pageId) {
+    var bar = document.querySelector("#" + pageId + " .auto-bar i");
+    if (!bar) return;
+    bar.style.animation = "none"; void bar.offsetWidth; bar.style.animation = "";
+  }
+  function goCert() { show(4); runBar("page4"); playApplause(5); }
+  function goGift() {
     show(5);
     var card = document.getElementById("giftCard");
     card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
     playLearn(5);
-  });
-  document.getElementById("giftBack").addEventListener("click", function () { show(4); });
+  }
+  function startAuto() {
+    clearAuto();
+    runBar("page3");
+    autoTimers.push(setTimeout(goCert, AUTO_MS));
+    autoTimers.push(setTimeout(goGift, AUTO_MS * 2));
+  }
 })();
 </script>
 </body>
