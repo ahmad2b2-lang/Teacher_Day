@@ -335,7 +335,10 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .pledge input:focus-visible { outline: 3px solid var(--chalk-yellow); outline-offset: 3px; }
 
 /* Auto-advance progress (7s per page) */
-.auto-bar { height: 6px; border-radius: 3px; background: rgba(243,239,227,.15); overflow: hidden; margin-bottom: 24px; }
+.auto { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.auto-timer { margin: 0; text-align: center; font-size: 1rem; color: var(--chalk-dim); font-variant-numeric: tabular-nums; }
+.auto-timer b { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; color: var(--chalk-yellow); vertical-align: -2px; padding-inline: 2px; }
+.auto-bar { height: 6px; border-radius: 3px; background: rgba(243,239,227,.15); overflow: hidden; }
 .auto-bar i { display: block; height: 100%; background: var(--chalk-yellow); transform-origin: right center; animation: autofill 7s linear forwards; }
 @keyframes autofill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
@@ -495,7 +498,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
       <p class="math" id="math"></p>
       <p class="signoff">كل عام وأنتِ بخير بمناسبة يوم المعلم!</p>
       <div class="spacer"></div>
-      <div class="auto-bar" aria-hidden="true"><i></i></div>
+      <div class="auto"><p class="auto-timer" aria-live="off">الصفحة التالية بعد <b class="auto-sec">٧</b> ثوانٍ</p><div class="auto-bar" aria-hidden="true"><i></i></div></div>
     </section>
 
     <!-- Page 4 -->
@@ -520,7 +523,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
         </div>
       </article>
       <div class="spacer"></div>
-      <div class="auto-bar" aria-hidden="true"><i></i></div>
+      <div class="auto"><p class="auto-timer" aria-live="off">الصفحة التالية بعد <b class="auto-sec">٧</b> ثوانٍ</p><div class="auto-bar" aria-hidden="true"><i></i></div></div>
     </section>
 
     <!-- Page: gift card -->
@@ -532,7 +535,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
         <img src="gift-card.jpg" alt="بطاقة هدايا بقيمة ٣٠٠ ريال سعودي" width="1206" height="2024">
       </figure>
       <div class="spacer"></div>
-      <div class="auto-bar" aria-hidden="true"><i></i></div>
+      <div class="auto"><p class="auto-timer" aria-live="off">الصفحة التالية بعد <b class="auto-sec">٧</b> ثوانٍ</p><div class="auto-bar" aria-hidden="true"><i></i></div></div>
       <div class="tray" id="giftTray" hidden>
         <button class="btn" id="giftNext" type="button">التالي</button>
       </div>
@@ -956,18 +959,40 @@ form { display: flex; flex-direction: column; gap: 18px; }
   document.getElementById("again2").addEventListener("click", restart);
   document.getElementById("backToGift").addEventListener("click", function () {
     show(5);
-    var bar = document.querySelector("#pageGift .auto-bar"); if (bar) bar.hidden = true;
+    var bar = document.querySelector("#pageGift .auto"); if (bar) bar.hidden = true;
+    clearInterval(tickTimer);
     document.getElementById("giftTray").hidden = false;
   });
   document.getElementById("giftNext").addEventListener("click", goAI);
 
   /* After the quiz, results → certificate → gift play on their own, 7 seconds each */
   var AUTO_MS = 7000, autoTimers = [];
-  function clearAuto() { autoTimers.forEach(clearTimeout); autoTimers = []; }
+  var tickTimer = null;
+  function clearAuto() { autoTimers.forEach(clearTimeout); autoTimers = []; clearInterval(tickTimer); }
+  function secondsText(n) {
+    var d = ar(n);
+    if (n === 1) return "ثانية واحدة";
+    if (n === 2) return "ثانيتين";
+    return "<b class=\"auto-sec\">" + d + "</b> " + (n <= 10 ? "ثوانٍ" : "ثانية");
+  }
+  function startCountdown(pageId) {
+    var el = document.querySelector("#" + pageId + " .auto-timer");
+    if (!el) return;
+    clearInterval(tickTimer);
+    var left = AUTO_MS / 1000;
+    function paint() { el.innerHTML = "الصفحة التالية بعد " + secondsText(left); }
+    paint();
+    tickTimer = setInterval(function () {
+      left -= 1;
+      if (left <= 0) { clearInterval(tickTimer); return; }
+      paint();
+    }, 1000);
+  }
   function runBar(pageId) {
     var bar = document.querySelector("#" + pageId + " .auto-bar i");
     if (!bar) return;
     bar.style.animation = "none"; void bar.offsetWidth; bar.style.animation = "";
+    startCountdown(pageId);
   }
   function goCert() { show(4); runBar("page4"); playApplause(5); }
   function goAI() { show(6); }
@@ -981,7 +1006,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
   function startAuto() {
     clearAuto();
     runBar("page3");
-    var gb = document.querySelector("#pageGift .auto-bar"); if (gb) gb.hidden = false;
+    var gb = document.querySelector("#pageGift .auto"); if (gb) gb.hidden = false;
     document.getElementById("giftTray").hidden = true;
     autoTimers.push(setTimeout(goCert, AUTO_MS));
     autoTimers.push(setTimeout(goGift, AUTO_MS * 2));
