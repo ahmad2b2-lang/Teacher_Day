@@ -338,6 +338,10 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .auto-bar { height: 6px; border-radius: 3px; background: rgba(243,239,227,.15); overflow: hidden; margin-bottom: 24px; }
 .auto-bar i { display: block; height: 100%; background: var(--chalk-yellow); transform-origin: right center; animation: autofill 7s linear forwards; }
 @keyframes autofill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Final AI credit page */
+.ai-mark { width: 110px; height: 110px; align-self: flex-start; }
+.ai-text { margin: 0; font-size: 1.15rem; line-height: 1.8; color: var(--chalk); max-width: 34ch; }
 </style>
 
 </head>
@@ -528,7 +532,27 @@ form { display: flex; flex-direction: column; gap: 18px; }
         <img src="gift-card.jpg" alt="بطاقة هدايا بقيمة ٣٠٠ ريال سعودي" width="1206" height="2024">
       </figure>
       <div class="spacer"></div>
+      <div class="auto-bar" aria-hidden="true"><i></i></div>
+      <div class="tray" id="giftTray" hidden>
+        <button class="btn" id="giftNext" type="button">التالي</button>
+      </div>
+    </section>
+
+    <!-- Final page: made with AI -->
+    <section class="screen" id="pageAI" hidden>
+      <div class="steps" aria-hidden="true"></div>
+      <svg class="ai-mark" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="30" y="30" width="60" height="60" rx="10" fill="none" stroke="#f3efe3" stroke-width="4"/>
+        <rect x="46" y="46" width="28" height="28" rx="4" fill="none" stroke="#f2d46b" stroke-width="4"/>
+        <path d="M45 30 V18 M60 30 V18 M75 30 V18 M45 102 V90 M60 102 V90 M75 102 V90 M30 45 H18 M30 60 H18 M30 75 H18 M102 45 H90 M102 60 H90 M102 75 H90" stroke="#f3efe3" stroke-width="4" stroke-linecap="round"/>
+        <path d="M96 10 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#f2a7a0"/>
+      </svg>
+      <h2>صُنع بمساعدة <span class="underline">الذكاء الاصطناعي</span></h2>
+      <p class="ai-text">صُمّم هذا التطبيق وبُرمج بمساعدة الذكاء الاصطناعي، أما الفكرة والمشاعر والامتنان فهي منّا إليكِ.</p>
+      <p class="signoff">شكرًا لكِ، وكل عام وأنتِ بخير.</p>
+      <div class="spacer"></div>
       <div class="tray">
+        <button class="btn ghost" id="backToGift" type="button">عرض الهدية</button>
         <button class="btn" id="again2" type="button">ابدأ من جديد</button>
       </div>
     </section>
@@ -538,7 +562,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
 
 <script>
 (function () {
-  var ids = ["page1", "pageGrow", "page2", "page3", "page4", "pageGift"];
+  var ids = ["page1", "pageGrow", "page2", "page3", "page4", "pageGift", "pageAI"];
   var pages = ids.map(function (id) { return document.getElementById(id); });
 
   // Progress dashes, one per page
@@ -930,6 +954,12 @@ form { display: flex; flex-direction: column; gap: 18px; }
   document.getElementById("submit").addEventListener("click", nextQ);
   document.getElementById("quiz").addEventListener("submit", function (e) { e.preventDefault(); nextQ(); });
   document.getElementById("again2").addEventListener("click", restart);
+  document.getElementById("backToGift").addEventListener("click", function () {
+    show(5);
+    var bar = document.querySelector("#pageGift .auto-bar"); if (bar) bar.hidden = true;
+    document.getElementById("giftTray").hidden = false;
+  });
+  document.getElementById("giftNext").addEventListener("click", goAI);
 
   /* After the quiz, results → certificate → gift play on their own, 7 seconds each */
   var AUTO_MS = 7000, autoTimers = [];
@@ -940,8 +970,10 @@ form { display: flex; flex-direction: column; gap: 18px; }
     bar.style.animation = "none"; void bar.offsetWidth; bar.style.animation = "";
   }
   function goCert() { show(4); runBar("page4"); playApplause(5); }
+  function goAI() { show(6); }
   function goGift() {
     show(5);
+    runBar("pageGift");
     var card = document.getElementById("giftCard");
     card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
     playLearn(5);
@@ -949,8 +981,11 @@ form { display: flex; flex-direction: column; gap: 18px; }
   function startAuto() {
     clearAuto();
     runBar("page3");
+    var gb = document.querySelector("#pageGift .auto-bar"); if (gb) gb.hidden = false;
+    document.getElementById("giftTray").hidden = true;
     autoTimers.push(setTimeout(goCert, AUTO_MS));
     autoTimers.push(setTimeout(goGift, AUTO_MS * 2));
+    autoTimers.push(setTimeout(goAI, AUTO_MS * 3));
   }
 })();
 </script>
