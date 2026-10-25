@@ -13,5 +13,4 @@ A small, mobile-friendly Arabic web app for World Teachers' Day (5 October).
 Open `index.html` in a browser. It is a single file with no build step.
 
 ## Gift card
-The gift card image is not in this repository because the repo is public and the card's code could be used by anyone.
-To show it, add the image as `gift-card.jpg` next to `index.html` (only once the repo is private).
+The gift card shown on the last page is `gift-card.jpg`.
