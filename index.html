@@ -525,16 +525,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
       <div class="steps" aria-hidden="true"></div>
       <h2>وهذه <span class="underline">هدية صغيرة</span> لكِ</h2>
       <p class="lede">عربون شكر وامتنان على سنوات العطاء.</p>
-      <button class="gift-box" id="giftBox" type="button" aria-label="المسي لفتح الهدية">
-        <svg viewBox="0 0 120 120" aria-hidden="true">
-          <rect x="18" y="52" width="84" height="56" rx="6" fill="#b4433a"/>
-          <rect x="12" y="38" width="96" height="20" rx="5" fill="#cf5246" class="lid"/>
-          <rect x="54" y="38" width="12" height="70" fill="#f2d46b"/>
-          <path d="M60 38 C44 14 26 26 40 36 Z M60 38 C76 14 94 26 80 36 Z" fill="none" stroke="#f2d46b" stroke-width="6" stroke-linejoin="round" class="lid"/>
-        </svg>
-        <span>المسي لفتح الهدية</span>
-      </button>
-      <figure class="gift-card" id="giftCard" hidden>
+      <figure class="gift-card" id="giftCard">
         <img src="gift-card.jpg" alt="بطاقة هدايا بقيمة ٣٠٠ ريال سعودي" width="1206" height="2024">
       </figure>
       <div class="spacer"></div>
@@ -885,9 +876,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
   }
 
   function resetGift() {
-    var box = document.getElementById("giftBox");
-    box.hidden = false; box.classList.remove("opening");
-    document.getElementById("giftCard").hidden = true;
+
   }
   function restart() {
     document.getElementById("quiz").reset();
@@ -944,17 +933,13 @@ form { display: flex; flex-direction: column; gap: 18px; }
   document.getElementById("backToResults").addEventListener("click", function () { show(3); });
   document.getElementById("again").addEventListener("click", restart);
   document.getElementById("again2").addEventListener("click", restart);
-  document.getElementById("toGift").addEventListener("click", function () { show(5); });
-  document.getElementById("giftBack").addEventListener("click", function () { show(4); });
-  document.getElementById("giftBox").addEventListener("click", function () {
-    var box = this;
-    box.classList.add("opening");
+  document.getElementById("toGift").addEventListener("click", function () {
+    show(5);
+    var card = document.getElementById("giftCard");
+    card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
     playLearn(5);
-    setTimeout(function () {
-      box.hidden = true;
-      document.getElementById("giftCard").hidden = false;
-    }, reduce ? 0 : 450);
   });
+  document.getElementById("giftBack").addEventListener("click", function () { show(4); });
 })();
 </script>
 </body>
