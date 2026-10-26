@@ -159,7 +159,7 @@ input[type=range]{width:100%;accent-color:var(--gold);min-height:36px}
     <div class="box" id="pane-text" role="tabpanel" aria-labelledby="tab-text">
       <div class="field">
         <label for="intro">التمهيد</label>
-        <input type="text" id="intro" autocomplete="off">
+        <input type="text" id="intro" autocomplete="off" placeholder="مثال: قال الإمام الصادق (عليه السلام)">
         <select id="sayer" aria-label="اختر قائلًا جاهزًا">
           <option value="">اختر قائلًا جاهزًا…</option>
         </select>
@@ -167,13 +167,13 @@ input[type=range]{width:100%;accent-color:var(--gold);min-height:36px}
 
       <div class="field">
         <label for="body">نص الحديث</label>
-        <textarea id="body"></textarea>
+        <textarea id="body" placeholder="اكتب نص الحديث هنا"></textarea>
         <div class="chips" id="chips" aria-label="إدراج في الحقل الذي تكتب فيه"></div>
       </div>
 
       <div class="field">
         <label for="source">المصدر</label>
-        <input type="text" id="source" autocomplete="off">
+        <input type="text" id="source" autocomplete="off" placeholder="مثال: بحار الأنوار، ج٩٤، ص١٨">
       </div>
     </div>
 
@@ -526,12 +526,12 @@ const CHIPS = [
 /* ---------- state ---------- */
 const DEFAULTS = {
   tpl: "mihrab",
-  intro: "روي عن الإمام الصادق (عليه السلام) أنه قال للمفضّل:",
-  body: "أربعٌ مَن كُنّ فيه كان مؤمنًا: الصدقُ، والحياءُ، وحُسنُ الخُلق، والشكرُ.",
-  source: "أعيان الشيعة، السيد محسن الأمين، ج١",
+  intro: "",
+  body: "",
+  source: "",
   font: "auto", num: "", scale: 1, sign: "", overlay: 0.5
 };
-const KEY = "hadith-cards-v1";
+const KEY = "hadith-cards-v2";
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { saved = {}; }
 const state = Object.assign({}, DEFAULTS, saved, { customImg: null });
@@ -764,7 +764,12 @@ const inViewer = !!(window.claude && typeof window.claude.use === "function");
 if (inViewer){
   window.claude.use("downloads").then(d => { viewerDownloads = d; }).catch(() => {});
 }
+function hasText(){
+  if (state.body.trim() || state.intro.trim()) return true;
+  status("اكتب نص الحديث أولًا."); return false;
+}
 async function saveImage(){
+  if (!hasText()) return;
   status("جارٍ تجهيز الصورة…");
   const blob = await makeBlob(), name = fileName();
   if (viewerDownloads){
@@ -778,6 +783,7 @@ async function saveImage(){
   status("تم حفظ الصورة في التنزيلات.");
 }
 async function shareImage(){
+  if (!hasText()) return;
   status("جارٍ تجهيز الصورة…");
   const blob = await makeBlob();
   const file = new File([blob], fileName(), { type: "image/png" });
