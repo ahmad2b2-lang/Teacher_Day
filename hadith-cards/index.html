@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>صانع بطاقات الأحاديث</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Reem+Kufi:wght@500;700&family=Tajawal:wght@400;500;700&display=swap">
+<style>
+/* Layout: phone-first. Preview on top, templates strip, then tabbed fields (Text / Design).
+   Share + Save live in a bar pinned to the bottom of the phone; a floating mini preview follows you while you type.
+   Wide screens: two columns with a sticky preview. Single deliberate dark "ink and gold" look. */
+:root{
+  --bg:#0d1613;
+  --surface:#15211d;
+  --surface-2:#1b2a25;
+  --line:#2a3b34;
+  --fg:#ece5d3;
+  --muted:#9aa89f;
+  --gold:#d4af5f;
+  --gold-ink:#1a1408;
+  --focus:#f0cf86;
+  --bar:rgba(13,22,19,.94);
+  --ui:"Tajawal","Noto Naskh Arabic",system-ui,sans-serif;
+  --display:"Aref Ruqaa","Amiri","Noto Naskh Arabic",serif;
+  --text:"Amiri","Noto Naskh Arabic",serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--ui);font-size:16px;line-height:1.6;direction:rtl;margin:0;
+  -webkit-tap-highlight-color:transparent;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px calc(104px + env(safe-area-inset-bottom,0px))}
+button,select,input,textarea{touch-action:manipulation}
+.app{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.app>*,.panel>*{min-width:0}
+header{display:grid;gap:2px;text-align:center}
+h1{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1.25;margin:0;color:var(--gold);text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:.82rem}
+
+.stage{display:grid;gap:10px;justify-items:center;align-content:start}
+.preview-btn{padding:0;border:0;background:none;min-height:0;border-radius:14px;position:relative;display:block;max-width:100%}
+#preview{height:min(50vh,560px);height:min(50svh,560px);width:auto;aspect-ratio:9/16;max-width:100%;border-radius:14px;
+  box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px var(--line);background:#000;display:block}
+.zoom-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:99px;white-space:nowrap;pointer-events:none}
+
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);padding:10px 14px;min-height:48px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.primary{flex:1;background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700;font-size:1.05rem}
+.secondary{flex:1;font-weight:500}
+
+/* bottom action bar (phone) */
+.actionbar{position:fixed;inset:auto 0 0 0;z-index:20;display:grid;gap:4px;
+  padding-top:8px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--bar);border-top:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.actions{display:flex;gap:10px;max-width:520px;width:100%;margin:0 auto}
+.status{min-height:1.3em;color:var(--muted);font-size:.82rem;text-align:center}
+.status:empty{display:none}
+body.typing .actionbar{display:none}
+
+.panel{display:grid;gap:14px;min-width:0}
+.section-title{font-size:.8rem;color:var(--muted);margin:0 0 6px}
+.tpls{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity;scrollbar-width:none;margin-inline:-4px}
+.tpls::-webkit-scrollbar{display:none}
+.tpl{flex:0 0 auto;display:grid;gap:4px;justify-items:center;padding:5px;border-radius:12px;background:transparent;border:2px solid transparent;scroll-snap-align:start;min-height:0}
+.tpl canvas,.tpl .add{width:72px;height:128px;border-radius:8px;display:block;background:var(--surface)}
+.tpl .add{display:grid;place-items:center;border:1.5px dashed var(--line);color:var(--muted);font-size:.78rem;text-align:center;line-height:1.4;padding:6px}
+.tpl span{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.tpl[aria-pressed="true"]{border-color:var(--gold)}
+.tpl[aria-pressed="true"] span{color:var(--gold)}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.tabs button{border:0;background:transparent;color:var(--muted);min-height:42px;font-weight:500}
+.tabs button[aria-selected="true"]{background:var(--surface-2);color:var(--gold);box-shadow:0 0 0 1px var(--line)}
+
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:14px}
+.field{display:grid;gap:6px;min-width:0}
+label{font-size:.9rem;font-weight:500}
+input[type=text],input[type=number],textarea,select{font-family:var(--text);font-size:18px;width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;direction:rtl;min-height:48px}
+select{font-family:var(--ui);font-size:16px}
+textarea{min-height:140px;resize:vertical;line-height:1.9}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px;min-width:0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:0 0 auto;font-family:var(--text);font-size:1rem;padding:6px 12px;min-height:42px;background:var(--bg);white-space:nowrap}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+input[type=range]{width:100%;accent-color:var(--gold);min-height:36px}
+
+/* floating mini preview while the big one is scrolled away */
+.mini{position:fixed;z-index:15;top:calc(env(safe-area-inset-top,0px) + 10px);left:max(10px,env(safe-area-inset-left,0px));
+  padding:0;min-height:0;border-radius:10px;border:1.5px solid var(--gold);background:#000;box-shadow:0 8px 24px rgba(0,0,0,.6);overflow:hidden}
+.mini canvas{display:block;width:70px;height:124px}
+
+/* full-screen viewer */
+.viewer{position:fixed;inset:0;z-index:40;background:rgba(5,8,7,.96);display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;
+  padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(12px,env(safe-area-inset-left,0px))}
+.viewer-top{width:100%;display:flex;justify-content:space-between;align-items:center}
+.viewer-top span{color:var(--muted);font-size:.85rem}
+.viewer canvas{width:100%;height:100%;object-fit:contain;display:block}
+.viewer-body{min-height:0;height:100%;width:100%;overflow:hidden}
+
+@media (min-width:860px){
+  body{padding-block:16px 40px}
+  .app{grid-template-columns:400px minmax(0,1fr);align-items:start;gap:24px}
+  header{grid-column:1/-1;text-align:start}
+  h1{font-size:2rem}
+  .stage{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
+  #preview{height:min(74vh,700px)}
+  .actionbar{position:static;background:none;border:0;padding:0;backdrop-filter:none;-webkit-backdrop-filter:none;width:100%}
+  .chips{flex-wrap:wrap;overflow:visible}
+  .tpl canvas,.tpl .add{width:84px;height:149px}
+  .mini{display:none!important}
+}
+@media (prefers-reduced-motion:no-preference){button,.tpl{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>صانع بطاقات الأحاديث</h1>
+    <p>بطاقات عمودية لحالة واتساب وقصص إنستغرام</p>
+  </header>
+
+  <section class="stage" aria-label="معاينة البطاقة">
+    <button class="preview-btn" id="previewBtn" type="button" aria-label="عرض البطاقة بملء الشاشة">
+      <canvas id="preview" width="1080" height="1920"></canvas>
+      <span class="zoom-hint">اضغط للتكبير</span>
+    </button>
+    <div class="actionbar" id="actionbar">
+      <div class="status" id="status" role="status"></div>
+      <div class="actions">
+        <button class="primary" id="shareBtn" type="button">مشاركة</button>
+        <button class="secondary" id="saveBtn" type="button">حفظ الصورة</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div>
+      <p class="section-title">القالب</p>
+      <div class="tpls" id="tpls"></div>
+      <input type="file" id="bgFile" accept="image/*" hidden>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="أقسام التحرير">
+      <button type="button" role="tab" id="tab-text" aria-controls="pane-text" aria-selected="true">النص</button>
+      <button type="button" role="tab" id="tab-look" aria-controls="pane-look" aria-selected="false">التصميم</button>
+    </div>
+
+    <div class="box" id="pane-text" role="tabpanel" aria-labelledby="tab-text">
+      <div class="field">
+        <label for="intro">التمهيد</label>
+        <input type="text" id="intro" autocomplete="off">
+        <select id="sayer" aria-label="اختر قائلًا جاهزًا">
+          <option value="">اختر قائلًا جاهزًا…</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="body">نص الحديث</label>
+        <textarea id="body"></textarea>
+        <div class="chips" id="chips" aria-label="إدراج في الحقل الذي تكتب فيه"></div>
+      </div>
+
+      <div class="field">
+        <label for="source">المصدر</label>
+        <input type="text" id="source" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="box" id="pane-look" role="tabpanel" aria-labelledby="tab-look" hidden>
+      <div class="row">
+        <div class="field">
+          <label for="font">خط النص</label>
+          <select id="font">
+            <option value="auto">خط القالب</option>
+            <option value="Amiri">الأميري</option>
+            <option value="Noto Naskh Arabic">النسخ</option>
+            <option value="Reem Kufi">الكوفي</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="num">رقم البطاقة</label>
+          <input type="number" id="num" min="0" max="999" inputmode="numeric" placeholder="اختياري">
+        </div>
+      </div>
+      <div class="field">
+        <label for="scale">حجم النص الأقصى</label>
+        <input type="range" id="scale" min="0.7" max="1.2" step="0.05" value="1">
+        <p class="hint">يصغر الخط تلقائيًا ليتسع النص الطويل، وهذا يحدد أكبر حجم للنص القصير.</p>
+      </div>
+      <div class="field">
+        <label for="sign">التوقيع أسفل البطاقة</label>
+        <input type="text" id="sign" autocomplete="off" placeholder="اسم قناتك أو حسابك">
+      </div>
+      <div class="field" id="overlayField" hidden>
+        <label for="overlay">تعتيم الخلفية</label>
+        <input type="range" id="overlay" min="0" max="0.85" step="0.05" value="0.5">
+      </div>
+    </div>
+  </section>
+</div>
+
+<button class="mini" id="mini" type="button" aria-label="العودة إلى المعاينة" hidden><canvas id="miniCanvas" width="168" height="298"></canvas></button>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="البطاقة بملء الشاشة" hidden>
+  <div class="viewer-top">
+    <span>هكذا ستظهر في الحالة</span>
+    <button type="button" id="viewerClose">إغلاق</button>
+  </div>
+  <div class="viewer-body"><canvas id="viewerCanvas" width="1080" height="1920"></canvas></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const W = 1080, H = 1920;
+const $ = id => document.getElementById(id);
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+const toAr = s => String(s).replace(/\d/g, d => AR_DIGITS[d]);
+const FALLBACK = '"Noto Naskh Arabic","Amiri","DejaVu Sans","Segoe UI",serif';
+
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function layer(w = W, h = H){ const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
+
+/* ---------- shared ornaments ---------- */
+function starPath(ctx, x, y, r, rot = Math.PI / 8, inner = 0.765){
+  ctx.beginPath();
+  for (let i = 0; i < 16; i++){
+    const a = rot + i * Math.PI / 8, rr = i % 2 ? r * inner : r;
+    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+}
+function rubElHizb(ctx, x, y, r, color, lw){
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw;
+  for (const rot of [0, Math.PI / 4]){
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++){ const a = rot + i * Math.PI / 2; const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.closePath(); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, r * 0.12, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+  ctx.restore();
+}
+function archPath(ctx, x, y, w, h, shoulder){
+  const cx = x + w / 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x, y + shoulder);
+  ctx.bezierCurveTo(x, y + shoulder * 0.42, x + w * 0.3, y + shoulder * 0.14, cx, y);
+  ctx.bezierCurveTo(x + w * 0.7, y + shoulder * 0.14, x + w, y + shoulder * 0.42, x + w, y + shoulder);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+}
+function crescent(ctx, x, y, r, color, glow){
+  const s = Math.ceil(r * 2 + 8), c = layer(s, s), g = c.getContext("2d");
+  g.fillStyle = color; g.beginPath(); g.arc(s / 2, s / 2, r, 0, Math.PI * 2); g.fill();
+  g.globalCompositeOperation = "destination-out";
+  g.beginPath(); g.arc(s / 2 + r * 0.42, s / 2 - r * 0.22, r * 0.86, 0, Math.PI * 2); g.fill();
+  ctx.save();
+  if (glow){ ctx.shadowColor = glow; ctx.shadowBlur = r * 0.9; }
+  ctx.drawImage(c, x - s / 2, y - s / 2);
+  ctx.restore();
+}
+function divider(ctx, cx, y, color, width){
+  ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  const half = width / 2, gap = 30;
+  for (const dir of [-1, 1]){
+    const g = ctx.createLinearGradient(cx + dir * gap, 0, cx + dir * half, 0);
+    g.addColorStop(0, color); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.strokeStyle = g; ctx.beginPath(); ctx.moveTo(cx + dir * gap, y); ctx.lineTo(cx + dir * half, y); ctx.stroke();
+  }
+  starPath(ctx, cx, y, 15); ctx.fill();
+  ctx.restore();
+}
+function tilePattern(ctx, size, draw){
+  const c = layer(size, size); draw(c.getContext("2d"), size);
+  return ctx.createPattern(c, "repeat");
+}
+function speckle(ctx, n, color, seed, maxR = 1.6){
+  const r = rng(seed); ctx.fillStyle = color;
+  for (let i = 0; i < n; i++){ ctx.globalAlpha = 0.25 + r() * 0.75; ctx.beginPath(); ctx.arc(r() * W, r() * H, 0.4 + r() * maxR, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+function vignette(ctx, strength){
+  const g = ctx.createRadialGradient(W / 2, H / 2, W * 0.35, W / 2, H / 2, H * 0.72);
+  g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${strength})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+
+/* ---------- templates ---------- */
+const TEMPLATES = [
+  {
+    id: "mihrab", name: "المحراب",
+    box: { x: 205, y: 760, w: 670, h: 820 },
+    bodyFont: "Amiri", introFont: "Aref Ruqaa",
+    intro: "#e6c47c", body: "#f6eedb", source: "#bfae86", accent: "#d4af5f", sign: "#bfae86",
+    bg(ctx){
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#0d4433"); g.addColorStop(0.55, "#083126"); g.addColorStop(1, "#041a13");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = tilePattern(ctx, 180, (t, s) => {
+        t.strokeStyle = "rgba(226,190,110,0.11)"; t.lineWidth = 2;
+        starPath(t, s / 2, s / 2, 54); t.stroke();
+        for (const [x, y] of [[0, 0], [s, 0], [0, s], [s, s]]){ starPath(t, x, y, 54); t.stroke(); }
+        t.beginPath(); t.moveTo(s / 2, 0); t.lineTo(s / 2, s / 2 - 54); t.moveTo(s / 2, s); t.lineTo(s / 2, s / 2 + 54);
+        t.moveTo(0, s / 2); t.lineTo(s / 2 - 54, s / 2); t.moveTo(s, s / 2); t.lineTo(s / 2 + 54, s / 2); t.stroke();
+      });
+      ctx.fillRect(0, 0, W, H);
+      vignette(ctx, 0.55);
+      // arch
+      const ax = 120, aw = 840, ay = 420, ah = 1240, sh = 330;
+      ctx.save(); archPath(ctx, ax, ay, aw, ah, sh);
+      const ag = ctx.createLinearGradient(0, ay, 0, ay + ah);
+      ag.addColorStop(0, "rgba(10,60,45,0.96)"); ag.addColorStop(1, "rgba(5,36,27,0.96)");
+      ctx.fillStyle = ag; ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 40; ctx.fill(); ctx.restore();
+      ctx.strokeStyle = "#d4af5f"; ctx.lineWidth = 7; archPath(ctx, ax, ay, aw, ah, sh); ctx.stroke();
+      ctx.lineWidth = 2; archPath(ctx, ax + 24, ay + 34, aw - 48, ah - 58, sh - 20); ctx.stroke();
+      // columns' capitals
+      ctx.fillStyle = "#d4af5f";
+      for (const cx of [ax, ax + aw]){ ctx.fillRect(cx - 18, ay + sh + 6, 36, 14); ctx.fillRect(cx - 12, ay + ah - 20, 24, 20); }
+      // rosette in the arch crown
+      rubElHizb(ctx, W / 2, ay + 190, 44, "#d4af5f", 3);
+      // hanging lantern
+      ctx.strokeStyle = "#b8954c"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, 175); ctx.stroke();
+      const lg = ctx.createRadialGradient(W / 2, 270, 10, W / 2, 270, 190);
+      lg.addColorStop(0, "rgba(255,206,120,0.55)"); lg.addColorStop(1, "rgba(255,206,120,0)");
+      ctx.fillStyle = lg; ctx.fillRect(W / 2 - 200, 80, 400, 380);
+      ctx.fillStyle = "#d4af5f"; ctx.beginPath(); ctx.moveTo(W / 2 - 34, 205); ctx.lineTo(W / 2 + 34, 205); ctx.lineTo(W / 2, 172); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(W / 2 - 34, 205); ctx.lineTo(W / 2 + 34, 205); ctx.lineTo(W / 2 + 46, 260); ctx.lineTo(W / 2 + 30, 320); ctx.lineTo(W / 2 - 30, 320); ctx.lineTo(W / 2 - 46, 260); ctx.closePath();
+      ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.fill(); ctx.strokeStyle = "#a07a34"; ctx.lineWidth = 4; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W / 2, 205); ctx.lineTo(W / 2, 320); ctx.moveTo(W / 2 - 46, 260); ctx.lineTo(W / 2 + 46, 260); ctx.stroke();
+      ctx.fillStyle = "#d4af5f"; ctx.beginPath(); ctx.moveTo(W / 2 - 30, 320); ctx.lineTo(W / 2 + 30, 320); ctx.lineTo(W / 2, 362); ctx.closePath(); ctx.fill();
+    }
+  },
+  {
+    id: "night", name: "ليلة القدر",
+    box: { x: 150, y: 530, w: 780, h: 740 },
+    bodyFont: "Noto Naskh Arabic", introFont: "Reem Kufi",
+    intro: "#f3d58e", body: "#ffffff", source: "#b8c1e6", accent: "#f3d58e", sign: "#c9d0ee",
+    shadow: "rgba(0,0,0,0.45)",
+    bg(ctx){
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#060b26"); g.addColorStop(0.5, "#14214f"); g.addColorStop(0.85, "#2c356f"); g.addColorStop(1, "#3d3b72");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const r = rng(7);
+      for (let i = 0; i < 280; i++){
+        const x = r() * W, y = r() * 1450, s = 0.6 + r() * 2.2;
+        ctx.globalAlpha = 0.25 + r() * 0.75; ctx.fillStyle = "#fff";
+        if (s > 2.4){ ctx.shadowColor = "#fff"; ctx.shadowBlur = 10; } else ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      crescent(ctx, 830, 330, 105, "#f6d98f", "rgba(246,217,143,0.9)");
+      // glass panel
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(90, 470, 900, 850, 36);
+      ctx.fillStyle = "rgba(255,255,255,0.07)"; ctx.fill();
+      ctx.strokeStyle = "rgba(243,213,142,0.45)"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+      starPath(ctx, W / 2, 470, 20); ctx.fillStyle = "#f3d58e"; ctx.fill();
+      // mosque silhouette
+      const sil = "#050a1f", base = 1690;
+      ctx.fillStyle = sil;
+      ctx.fillRect(0, base, W, H - base);
+      const dome = (cx, by, w, h) => { ctx.beginPath(); ctx.moveTo(cx - w / 2, by); ctx.bezierCurveTo(cx - w * 0.62, by - h * 0.55, cx - w * 0.18, by - h * 0.82, cx, by - h); ctx.bezierCurveTo(cx + w * 0.18, by - h * 0.82, cx + w * 0.62, by - h * 0.55, cx + w / 2, by); ctx.closePath(); ctx.fill(); };
+      ctx.fillRect(360, 1590, 360, base - 1590 + 2); dome(540, 1595, 380, 250);
+      ctx.fillRect(537, 1300, 6, 60); crescent(ctx, 540, 1292, 14, sil);
+      ctx.fillRect(150, 1640, 220, 60); dome(260, 1645, 200, 130);
+      ctx.fillRect(710, 1640, 220, 60); dome(820, 1645, 200, 130);
+      const minaret = cx => { ctx.fillRect(cx - 22, 1300, 44, base - 1300 + 2); ctx.fillRect(cx - 34, 1410, 68, 16); ctx.fillRect(cx - 30, 1300, 60, 14);
+        ctx.beginPath(); ctx.moveTo(cx - 22, 1300); ctx.lineTo(cx, 1210); ctx.lineTo(cx + 22, 1300); ctx.closePath(); ctx.fill(); crescent(ctx, cx, 1196, 10, sil); };
+      minaret(58); minaret(1022);
+      ctx.fillStyle = "rgba(246,217,143,0.75)";
+      for (const x of [400, 450, 500, 580, 630, 680]){ ctx.beginPath(); ctx.moveTo(x - 12, 1665); ctx.lineTo(x - 12, 1630); ctx.arc(x, 1630, 12, Math.PI, 0); ctx.lineTo(x + 12, 1665); ctx.closePath(); ctx.fill(); }
+    }
+  },
+  {
+    id: "manuscript", name: "المخطوطة",
+    box: { x: 170, y: 540, w: 740, h: 1020 },
+    bodyFont: "Amiri", introFont: "Aref Ruqaa",
+    intro: "#1f3a6b", body: "#2a1c0c", source: "#7a5a2a", accent: "#b08a3e", sign: "#6b4e22", badgeBg: "rgba(255,250,235,0.7)",
+    bg(ctx){
+      ctx.fillStyle = "#efe2c1"; ctx.fillRect(0, 0, W, H);
+      const pg = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, H * 0.7);
+      pg.addColorStop(0, "rgba(255,248,226,0.6)"); pg.addColorStop(1, "rgba(160,120,60,0.45)");
+      ctx.fillStyle = pg; ctx.fillRect(0, 0, W, H);
+      speckle(ctx, 2600, "rgba(110,80,40,0.10)", 11);
+      // border band
+      const m = 64, bw = 48;
+      ctx.fillStyle = "#1f3a6b"; ctx.fillRect(m, m, W - 2 * m, bw); ctx.fillRect(m, H - m - bw, W - 2 * m, bw);
+      ctx.fillRect(m, m, bw, H - 2 * m); ctx.fillRect(W - m - bw, m, bw, H - 2 * m);
+      ctx.strokeStyle = "#c9a14d"; ctx.lineWidth = 3;
+      ctx.strokeRect(m, m, W - 2 * m, H - 2 * m); ctx.strokeRect(m + bw, m + bw, W - 2 * (m + bw), H - 2 * (m + bw));
+      ctx.lineWidth = 1.5; ctx.strokeRect(m + bw + 14, m + bw + 14, W - 2 * (m + bw + 14), H - 2 * (m + bw + 14));
+      ctx.fillStyle = "#d8b25e";
+      const c = m + bw / 2;
+      for (let x = c + 60; x < W - c - 30; x += 60){ starPath(ctx, x, c, 11); ctx.fill(); starPath(ctx, x, H - c, 11); ctx.fill(); }
+      for (let y = c + 60; y < H - c - 30; y += 60){ starPath(ctx, c, y, 11); ctx.fill(); starPath(ctx, W - c, y, 11); ctx.fill(); }
+      for (const [x, y] of [[c, c], [W - c, c], [c, H - c], [W - c, H - c]]){ ctx.fillStyle = "#8e2f2a"; ctx.fillRect(x - 24, y - 24, 48, 48); ctx.fillStyle = "#e0bd6c"; starPath(ctx, x, y, 18); ctx.fill(); }
+      // headpiece cartouche
+      const hy = 360, hw = 600, hh = 120, hx = (W - hw) / 2;
+      ctx.beginPath(); ctx.moveTo(hx - 50, hy); ctx.lineTo(hx + 40, hy - hh / 2); ctx.lineTo(hx + hw - 40, hy - hh / 2); ctx.lineTo(hx + hw + 50, hy); ctx.lineTo(hx + hw - 40, hy + hh / 2); ctx.lineTo(hx + 40, hy + hh / 2); ctx.closePath();
+      ctx.fillStyle = "#1f3a6b"; ctx.fill(); ctx.strokeStyle = "#c9a14d"; ctx.lineWidth = 5; ctx.stroke();
+      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(hx - 22, hy); ctx.lineTo(hx + 52, hy - hh / 2 + 14); ctx.lineTo(hx + hw - 52, hy - hh / 2 + 14); ctx.lineTo(hx + hw + 22, hy); ctx.lineTo(hx + hw - 52, hy + hh / 2 - 14); ctx.lineTo(hx + 52, hy + hh / 2 - 14); ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = "#e0bd6c"; starPath(ctx, W / 2, hy, 40); ctx.fill();
+      ctx.fillStyle = "#8e2f2a"; starPath(ctx, W / 2, hy, 20); ctx.fill();
+      ctx.fillStyle = "#e0bd6c";
+      for (const dx of [-1, 1]) for (let i = 1; i <= 4; i++){ ctx.beginPath(); ctx.arc(W / 2 + dx * (70 + i * 52), hy, i % 2 ? 7 : 4.5, 0, Math.PI * 2); ctx.fill(); }
+      // tail ornament
+      divider(ctx, W / 2, 1620, "#b08a3e", 520);
+    }
+  },
+  {
+    id: "turquoise", name: "الفيروز",
+    box: { x: 165, y: 660, w: 750, h: 860 },
+    bodyFont: "Noto Naskh Arabic", introFont: "Reem Kufi",
+    intro: "#0f4a8a", body: "#1b2230", source: "#2f7f86", accent: "#1aa3a1", sign: "#0c3a74", signPill: "#fbf7ee", badgeBg: "#fbf7ee",
+    bg(ctx){
+      ctx.fillStyle = "#0c3a74"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = tilePattern(ctx, 170, (t, s) => {
+        t.fillStyle = "#0c3a74"; t.fillRect(0, 0, s, s);
+        t.fillStyle = "#26aeb0"; t.strokeStyle = "#f4efe2"; t.lineWidth = 3;
+        starPath(t, s / 2, s / 2, 62); t.fill(); t.stroke();
+        t.fillStyle = "#f4efe2"; starPath(t, s / 2, s / 2, 22); t.fill();
+        for (const [x, y] of [[0, 0], [s, 0], [0, s], [s, s]]){ t.fillStyle = "#f4efe2"; starPath(t, x, y, 34, 0, 0.6); t.fill(); t.fillStyle = "#0c3a74"; starPath(t, x, y, 14, 0, 0.6); t.fill(); }
+      });
+      ctx.fillRect(0, 0, W, H);
+      vignette(ctx, 0.5);
+      // mihrab-shaped panel
+      const px = 100, pw = 880, py = 360, ph = 1270, sh = 280;
+      ctx.save(); archPath(ctx, px - 22, py - 30, pw + 44, ph + 52, sh + 10); ctx.fillStyle = "#26aeb0"; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 40; ctx.fill(); ctx.restore();
+      ctx.strokeStyle = "#f4efe2"; ctx.lineWidth = 3; archPath(ctx, px - 22, py - 30, pw + 44, ph + 52, sh + 10); ctx.stroke();
+      archPath(ctx, px, py, pw, ph, sh); ctx.fillStyle = "#fbf7ee"; ctx.fill();
+      ctx.strokeStyle = "#0c3a74"; ctx.lineWidth = 3; ctx.stroke();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(38,174,176,0.7)"; archPath(ctx, px + 20, py + 26, pw - 40, ph - 46, sh - 18); ctx.stroke();
+      ctx.fillStyle = "#26aeb0"; starPath(ctx, W / 2, py + 150, 36); ctx.fill();
+      ctx.fillStyle = "#0c3a74"; starPath(ctx, W / 2, py + 150, 15); ctx.fill();
+    }
+  },
+  {
+    id: "noor", name: "النور",
+    box: { x: 150, y: 620, w: 780, h: 920 },
+    bodyFont: "Amiri", introFont: "Aref Ruqaa",
+    intro: "#e0b964", body: "#f3e8d0", source: "#ab9570", accent: "#d4af5f", sign: "#ab9570",
+    shadow: "rgba(0,0,0,0.5)",
+    bg(ctx){
+      const g = ctx.createRadialGradient(W / 2, 760, 40, W / 2, 900, 1250);
+      g.addColorStop(0, "#5a3417"); g.addColorStop(0.45, "#251309"); g.addColorStop(1, "#090504");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 15; i++){
+        const a = Math.PI / 2 + (i - 7) * 0.085, len = 1900;
+        const rg = ctx.createLinearGradient(W / 2, -140, W / 2 + Math.cos(a) * len, -140 + Math.sin(a) * len);
+        rg.addColorStop(0, "rgba(255,200,120,0.10)"); rg.addColorStop(1, "rgba(255,200,120,0)");
+        ctx.fillStyle = rg; ctx.beginPath(); ctx.moveTo(W / 2, -140);
+        ctx.lineTo(W / 2 + Math.cos(a - 0.018) * len, -140 + Math.sin(a - 0.018) * len);
+        ctx.lineTo(W / 2 + Math.cos(a + 0.018) * len, -140 + Math.sin(a + 0.018) * len); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      speckle(ctx, 120, "rgba(255,215,150,0.35)", 3, 2.2);
+      rubElHizb(ctx, W / 2, 470, 64, "#d4af5f", 3.5);
+      const b = { x: 120, y: 590, w: 840, h: 980 }, L = 70;
+      ctx.strokeStyle = "#d4af5f"; ctx.lineWidth = 3;
+      for (const [x, y, dx, dy] of [[b.x, b.y, 1, 1], [b.x + b.w, b.y, -1, 1], [b.x, b.y + b.h, 1, -1], [b.x + b.w, b.y + b.h, -1, -1]]){
+        ctx.beginPath(); ctx.moveTo(x + dx * L, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * L); ctx.stroke();
+        ctx.fillStyle = "#d4af5f"; ctx.beginPath(); ctx.moveTo(x + dx * 10, y + dy * 2); ctx.lineTo(x + dx * 18, y + dy * 10); ctx.lineTo(x + dx * 10, y + dy * 18); ctx.lineTo(x + dx * 2, y + dy * 10); ctx.closePath(); ctx.fill();
+      }
+      divider(ctx, W / 2, 1650, "#d4af5f", 420);
+    }
+  },
+  {
+    id: "custom", name: "خلفيتك", custom: true,
+    box: { x: 130, y: 470, w: 820, h: 1100 },
+    bodyFont: "Amiri", introFont: "Aref Ruqaa",
+    intro: "#f1cf83", body: "#ffffff", source: "#e3dccb", accent: "#f1cf83", sign: "#f1ead8",
+    shadow: "rgba(0,0,0,0.6)",
+    bg(ctx){
+      ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0, 0, W, H);
+      const img = state.customImg;
+      if (img){
+        const s = Math.max(W / img.width, H / img.height), w = img.width * s, h = img.height * s;
+        ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      }
+      ctx.fillStyle = `rgba(0,0,0,${state.overlay})`; ctx.fillRect(0, 0, W, H);
+      vignette(ctx, 0.35);
+      ctx.strokeStyle = "rgba(241,207,131,0.7)"; ctx.lineWidth = 2; ctx.strokeRect(70, 70, W - 140, H - 140);
+    }
+  }
+];
+
+const SAYERS = [
+  "قال الله تعالى",
+  "قال رسول الله (صلى الله عليه وآله)",
+  "قال أمير المؤمنين علي (عليه السلام)",
+  "قالت السيدة فاطمة الزهراء (عليها السلام)",
+  "قال الإمام الحسن (عليه السلام)",
+  "قال الإمام الحسين (عليه السلام)",
+  "قال الإمام زين العابدين (عليه السلام)",
+  "قال الإمام الباقر (عليه السلام)",
+  "قال الإمام الصادق (عليه السلام)",
+  "قال الإمام الكاظم (عليه السلام)",
+  "قال الإمام الرضا (عليه السلام)",
+  "قال الإمام الجواد (عليه السلام)",
+  "قال الإمام الهادي (عليه السلام)",
+  "قال الإمام العسكري (عليه السلام)",
+  "قال الإمام المهدي (عجل الله فرجه)"
+];
+const CHIPS = [
+  { t: "(عليه السلام)" }, { t: "(عليها السلام)" }, { t: "(عليهم السلام)" },
+  { t: "(صلى الله عليه وآله)" }, { t: "(عجل الله فرجه)" },
+  { t: "« »", o: "«", c: "»" }, { t: "﴿ ﴾", o: "﴿", c: "﴾" }
+];
+
+/* ---------- state ---------- */
+const DEFAULTS = {
+  tpl: "mihrab",
+  intro: "روي عن الإمام الصادق (عليه السلام) أنه قال للمفضّل:",
+  body: "أربعٌ مَن كُنّ فيه كان مؤمنًا: الصدقُ، والحياءُ، وحُسنُ الخُلق، والشكرُ.",
+  source: "أعيان الشيعة، السيد محسن الأمين، ج١",
+  font: "auto", num: "", scale: 1, sign: "", overlay: 0.5
+};
+const KEY = "hadith-cards-v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { saved = {}; }
+const state = Object.assign({}, DEFAULTS, saved, { customImg: null });
+if (state.tpl === "custom") state.tpl = DEFAULTS.tpl;
+function persist(){
+  try { const { customImg, ...rest } = state; localStorage.setItem(KEY, JSON.stringify(rest)); } catch (e) {}
+}
+
+/* ---------- text layout ---------- */
+function fontStr(weight, size, fam){ return `${weight} ${size}px "${fam}", ${FALLBACK}`; }
+function wrap(ctx, text, maxW){
+  const out = [];
+  for (const para of text.split(/\n/)){
+    const words = para.trim().split(/\s+/).filter(Boolean);
+    if (!words.length){ continue; }
+    let line = words[0];
+    for (let i = 1; i < words.length; i++){
+      const test = line + " " + words[i];
+      if (ctx.measureText(test).width <= maxW) line = test; else { out.push(line); line = words[i]; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+function plan(ctx, tpl, d, s){
+  const bodyFam = d.font === "auto" ? tpl.bodyFont : d.font;
+  const iS = Math.min(s * 0.9, 68), srcS = Math.max(26, Math.min(s * 0.52, 36));
+  const parts = []; let total = 0;
+  const w = tpl.box.w;
+  if (d.intro.trim()){
+    ctx.font = fontStr(700, iS, tpl.introFont);
+    const lines = wrap(ctx, d.intro, w); const lh = iS * 1.65;
+    parts.push({ kind: "intro", lines, lh, font: ctx.font, color: tpl.intro }); total += lines.length * lh;
+    parts.push({ kind: "div", h: s * 1.3 }); total += s * 1.3;
+  }
+  ctx.font = fontStr(700, s, bodyFam);
+  const blines = wrap(ctx, d.body, w); const blh = s * 1.85;
+  parts.push({ kind: "body", lines: blines, lh: blh, font: ctx.font, color: tpl.body }); total += blines.length * blh;
+  if (d.source.trim()){
+    const gap = s * 0.8; parts.push({ kind: "gap", h: gap }); total += gap;
+    ctx.font = fontStr(400, srcS, bodyFam);
+    const lines = wrap(ctx, d.source, w); const lh = srcS * 1.6;
+    parts.push({ kind: "src", lines, lh, font: ctx.font, color: tpl.source }); total += lines.length * lh;
+  }
+  // a single word too wide for the box also counts as not fitting
+  let tooWide = false;
+  for (const p of parts) if (p.lines){ ctx.font = p.font; for (const l of p.lines) if (ctx.measureText(l).width > w + 1) tooWide = true; }
+  return { parts, total, tooWide };
+}
+function drawText(ctx, tpl, d){
+  const maxS = Math.round(80 * d.scale);
+  let lo = 30, hi = Math.max(32, maxS), best = null;
+  while (lo <= hi){
+    const mid = (lo + hi) >> 1, p = plan(ctx, tpl, d, mid);
+    if (p.total <= tpl.box.h && !p.tooWide){ best = { p, s: mid }; lo = mid + 1; } else hi = mid - 1;
+  }
+  if (!best) best = { p: plan(ctx, tpl, d, 30), s: 30 };
+  const { p, s } = best, cx = tpl.box.x + tpl.box.w / 2;
+  let y = tpl.box.y + Math.max(0, (tpl.box.h - p.total) / 2);
+  ctx.save();
+  ctx.direction = "rtl"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (tpl.shadow){ ctx.shadowColor = tpl.shadow; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3; }
+  for (const part of p.parts){
+    if (part.kind === "div"){ ctx.save(); ctx.shadowBlur = 0; divider(ctx, cx, y + part.h / 2, tpl.accent, Math.min(tpl.box.w, 360)); ctx.restore(); y += part.h; continue; }
+    if (part.kind === "gap"){ y += part.h; continue; }
+    ctx.font = part.font; ctx.fillStyle = part.color;
+    for (const line of part.lines){ ctx.fillText(line, cx, y + part.lh / 2); y += part.lh; }
+  }
+  ctx.restore();
+  return s;
+}
+
+/* ---------- full render ---------- */
+const bgCache = new Map();
+function bgFor(tpl){
+  const key = tpl.custom ? `custom|${state.customStamp || 0}|${state.overlay}` : tpl.id;
+  if (!bgCache.has(key)){
+    if (tpl.custom) for (const k of bgCache.keys()) if (k.startsWith("custom|")) bgCache.delete(k);
+    const c = layer(); tpl.bg(c.getContext("2d")); bgCache.set(key, c);
+  }
+  return bgCache.get(key);
+}
+function render(canvas, tpl, d){
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(bgFor(tpl), 0, 0);
+  if (String(d.num).trim() !== ""){
+    const pos = { mihrab: [920, 250], night: [170, 250] }[tpl.id] || [W / 2, 250];
+    const x = pos[0], ny = pos[1];
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, ny, 44, 0, Math.PI * 2);
+    ctx.fillStyle = tpl.badgeBg || "rgba(0,0,0,0.28)"; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = tpl.accent; ctx.stroke();
+    ctx.fillStyle = tpl.accent; ctx.font = fontStr(700, 46, "Amiri");
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.direction = "rtl";
+    ctx.fillText(toAr(String(d.num).trim()), x, ny + 4);
+    ctx.restore();
+  }
+  drawText(ctx, tpl, d);
+  if (d.sign.trim()){
+    ctx.save();
+    ctx.direction = "rtl"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = fontStr(700, 32, "Noto Naskh Arabic"); ctx.fillStyle = tpl.sign;
+    const y = tpl.id === "manuscript" ? 1690 : tpl.id === "night" ? 1790 : 1720;
+    if (tpl.signPill){
+      const tw = ctx.measureText(d.sign.trim()).width + 70;
+      ctx.beginPath(); ctx.roundRect(W / 2 - tw / 2, y - 34, tw, 68, 34);
+      ctx.fillStyle = tpl.signPill; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = tpl.accent; ctx.stroke();
+      ctx.fillStyle = tpl.sign;
+    }
+    ctx.fillText(d.sign.trim(), W / 2, y);
+    ctx.restore();
+  }
+}
+
+/* ---------- UI ---------- */
+const preview = $("preview"), tplsEl = $("tpls");
+const fields = ["intro", "body", "source", "sign", "num"];
+let lastText = $("body");
+
+function currentTpl(){ return TEMPLATES.find(t => t.id === state.tpl) || TEMPLATES[0]; }
+let raf = 0;
+function paint(){ render(preview, currentTpl(), state); $("miniCanvas").getContext("2d").drawImage(preview, 0, 0, 168, 298); }
+function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); }
+
+const thumbs = {};
+let thumbTimer = 0;
+function drawThumbs(){
+  const big = layer();
+  for (const t of TEMPLATES){
+    if (t.custom && !state.customImg) continue;
+    const c = thumbs[t.id]; if (!c) continue;
+    render(big, t, state);
+    c.getContext("2d").drawImage(big, 0, 0, c.width, c.height);
+  }
+}
+function scheduleThumbs(){ clearTimeout(thumbTimer); thumbTimer = setTimeout(drawThumbs, 700); }
+
+function buildTemplates(){
+  for (const t of TEMPLATES){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "tpl"; b.dataset.id = t.id;
+    if (t.custom){
+      const add = document.createElement("div"); add.className = "add"; add.textContent = "أضف صورة خلفية";
+      const c = document.createElement("canvas"); c.width = 168; c.height = 298; c.hidden = true; thumbs[t.id] = c;
+      b.append(add, c);
+    } else {
+      const c = document.createElement("canvas"); c.width = 168; c.height = 298; thumbs[t.id] = c; b.append(c);
+    }
+    const s = document.createElement("span"); s.textContent = t.name; b.append(s);
+    b.addEventListener("click", () => {
+      if (t.custom && (!state.customImg || state.tpl === "custom")){ $("bgFile").click(); return; }
+      selectTpl(t.id);
+    });
+    tplsEl.append(b);
+  }
+}
+function selectTpl(id){
+  state.tpl = id;
+  for (const b of tplsEl.children) b.setAttribute("aria-pressed", String(b.dataset.id === id));
+  $("overlayField").hidden = id !== "custom";
+  persist(); schedule();
+}
+
+$("bgFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    state.customImg = img; state.customStamp = Date.now();
+    const btn = tplsEl.querySelector('[data-id="custom"]');
+    btn.querySelector(".add").hidden = true; thumbs.custom.hidden = false;
+    selectTpl("custom"); drawThumbs();
+    status("تمت إضافة الخلفية. اضغط عليها مرة أخرى لتغييرها.");
+  };
+  img.onerror = () => status("تعذر فتح هذه الصورة. جرّب صورة JPG أو PNG.");
+  img.src = URL.createObjectURL(f);
+  e.target.value = "";
+});
+
+function bindFields(){
+  for (const k of fields){
+    const el = $(k); el.value = state[k] ?? "";
+    el.addEventListener("input", () => { state[k] = el.value; persist(); schedule(); scheduleThumbs(); });
+    if (["intro", "body", "source"].includes(k)) el.addEventListener("focus", () => { lastText = el; });
+  }
+  $("font").value = state.font;
+  $("font").addEventListener("change", e => { state.font = e.target.value; persist(); schedule(); scheduleThumbs(); });
+  $("scale").value = state.scale;
+  $("scale").addEventListener("input", e => { state.scale = +e.target.value; persist(); schedule(); });
+  $("overlay").value = state.overlay;
+  $("overlay").addEventListener("input", e => { state.overlay = +e.target.value; persist(); schedule(); });
+  const sayer = $("sayer");
+  for (const s of SAYERS){ const o = document.createElement("option"); o.value = s; o.textContent = s; sayer.append(o); }
+  sayer.addEventListener("change", () => {
+    if (!sayer.value) return;
+    $("intro").value = sayer.value; state.intro = sayer.value; sayer.value = "";
+    persist(); schedule(); scheduleThumbs();
+  });
+  const chips = $("chips");
+  for (const c of CHIPS){
+    const b = document.createElement("button"); b.type = "button"; b.textContent = c.t;
+    b.addEventListener("pointerdown", e => e.preventDefault());
+    b.addEventListener("click", () => insert(c));
+    chips.append(b);
+  }
+}
+function insert(c){
+  const el = lastText, s = el.selectionStart ?? el.value.length, e = el.selectionEnd ?? s;
+  const sel = el.value.slice(s, e);
+  let text;
+  if (c.o){ text = sel ? c.o + sel + c.c : c.o + "" + c.c; }
+  else {
+    const before = el.value.slice(0, s);
+    text = (before && !/\s$/.test(before) ? " " : "") + c.t;
+  }
+  el.focus();
+  el.setRangeText(text, s, e, "end");
+  if (c.o && !sel){ const p = s + 1; el.setSelectionRange(p, p); }
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/* ---------- export ---------- */
+function status(msg){ $("status").textContent = msg; }
+function fileName(){ const d = new Date(); const p = n => String(n).padStart(2, "0"); return `hadith-card-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.png`; }
+function makeBlob(){
+  return new Promise(res => { const c = layer(); render(c, currentTpl(), state); c.toBlob(b => res(b), "image/png"); });
+}
+let viewerDownloads = null;
+const inViewer = !!(window.claude && typeof window.claude.use === "function");
+if (inViewer){
+  window.claude.use("downloads").then(d => { viewerDownloads = d; }).catch(() => {});
+}
+async function saveImage(){
+  status("جارٍ تجهيز الصورة…");
+  const blob = await makeBlob(), name = fileName();
+  if (viewerDownloads){
+    try { await viewerDownloads.save({ filename: name, data: blob }); status("تم حفظ الصورة."); }
+    catch (err){ status(err && err.code === "declined" ? "لم تُحفظ الصورة." : "تعذر الحفظ هنا. افتح الملف المستقل على هاتفك."); }
+    return;
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  status("تم حفظ الصورة في التنزيلات.");
+}
+async function shareImage(){
+  status("جارٍ تجهيز الصورة…");
+  const blob = await makeBlob();
+  const file = new File([blob], fileName(), { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file] }); status(""); return; }
+    catch (err){ if (err && err.name === "AbortError"){ status(""); return; } }
+  }
+  status("المشاركة غير متاحة هنا، سيتم حفظ الصورة بدلًا من ذلك.");
+  saveImage();
+}
+$("saveBtn").addEventListener("click", saveImage);
+$("shareBtn").addEventListener("click", shareImage);
+if (inViewer || !navigator.canShare){ $("shareBtn").hidden = true; $("saveBtn").className = "primary"; }
+
+/* ---------- phone behaviours ---------- */
+for (const [tab, pane] of [["tab-text", "pane-text"], ["tab-look", "pane-look"]]){
+  $(tab).addEventListener("click", () => {
+    for (const [t, p] of [["tab-text", "pane-text"], ["tab-look", "pane-look"]]){
+      const on = t === tab; $(t).setAttribute("aria-selected", String(on)); $(p).hidden = !on;
+    }
+  });
+}
+const isField = el => el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && /^(text|number)$/.test(el.type)));
+document.addEventListener("focusin", e => { if (isField(e.target)) document.body.classList.add("typing"); });
+document.addEventListener("focusout", () => setTimeout(() => { if (!isField(document.activeElement)) document.body.classList.remove("typing"); }, 60));
+if ("IntersectionObserver" in window){
+  new IntersectionObserver(([en]) => { $("mini").hidden = en.isIntersecting; }, { threshold: 0.25 }).observe(preview);
+}
+$("mini").addEventListener("click", () => {
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+});
+function openViewer(){
+  $("viewerCanvas").getContext("2d").drawImage(preview, 0, 0);
+  $("viewer").hidden = false; document.body.style.overflow = "hidden"; $("viewerClose").focus();
+}
+function closeViewer(){ $("viewer").hidden = true; document.body.style.overflow = ""; $("previewBtn").focus({ preventScroll: true }); }
+$("previewBtn").addEventListener("click", openViewer);
+$("viewerClose").addEventListener("click", closeViewer);
+$("viewer").addEventListener("click", e => { if (e.target === $("viewer") || e.target.classList.contains("viewer-body")) closeViewer(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("viewer").hidden) closeViewer(); });
+
+/* ---------- boot ---------- */
+buildTemplates(); bindFields(); selectTpl(state.tpl);
+paint(); drawThumbs();
+const SAMPLE = "قال الإمام عليه السلام";
+const loads = [
+  '700 40px "Amiri"', '400 40px "Amiri"', '700 40px "Aref Ruqaa"', '700 40px "Noto Naskh Arabic"',
+  '400 40px "Noto Naskh Arabic"', '700 40px "Reem Kufi"'
+].map(f => document.fonts ? document.fonts.load(f, SAMPLE).catch(() => {}) : Promise.resolve());
+Promise.all(loads).then(() => { paint(); drawThumbs(); });
+if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { schedule(); scheduleThumbs(); });
+})();
+</script>
+</body>
+</html>
